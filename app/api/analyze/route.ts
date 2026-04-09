@@ -76,19 +76,21 @@ export async function POST(req: NextRequest) {
     }
 
     // ✅ DAILY LIMIT CHECK
-    const today = new Date().toISOString().split('T')[0]
-    const { count } = await supabaseAdmin
-      .from('analyses')
-      .select('*', { count: 'exact', head: true })
-      .gte('created_at', `${today}T00:00:00`)
+    if (supabaseAdmin) {
+      const today = new Date().toISOString().split('T')[0]
+      const { count } = await supabaseAdmin
+        .from('analyses')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', `${today}T00:00:00`)
 
-    const dailyLimit = parseInt(process.env.DAILY_LIMIT || '100')
-    if ((count ?? 0) >= dailyLimit) {
-      logInfo('analyze-api', 'Daily limit reached', { count })
-      return NextResponse.json(
-        { error: 'Daily analysis limit reached. Please try again tomorrow.' },
-        { status: 429 }
-      )
+      const dailyLimit = parseInt(process.env.DAILY_LIMIT || '100')
+      if ((count ?? 0) >= dailyLimit) {
+        logInfo('analyze-api', 'Daily limit reached', { count })
+        return NextResponse.json(
+          { error: 'Daily analysis limit reached. Please try again tomorrow.' },
+          { status: 429 }
+        )
+      }
     }
 
     // ✅ VALIDATION
@@ -127,18 +129,21 @@ export async function POST(req: NextRequest) {
     logInfo('analyze-api', 'Request received', { stage, customer })
 
     // ✅ CACHE CHECK — before OpenAI call to save cost
-    const normalized = ideaText.trim().toLowerCase()
-    const { data: existing } = await supabaseAdmin
-      .from('analyses')
-      .select('id, score')
-      .eq('idea_text', normalized)
-      .gte('created_at', `${today}T00:00:00`)
-      .limit(1)
-      .single()
+    const today = new Date().toISOString().split('T')[0]
+    if (supabaseAdmin) {
+      const normalized = ideaText.trim().toLowerCase()
+      const { data: existing } = await supabaseAdmin
+        .from('analyses')
+        .select('id, score')
+        .eq('idea_text', normalized)
+        .gte('created_at', `${today}T00:00:00`)
+        .limit(1)
+        .single()
 
-    if (existing) {
-      logInfo('analyze-api', 'Cache hit — returning existing result', { id: existing.id })
-      return NextResponse.json({ id: existing.id, result: existing })
+      if (existing) {
+        logInfo('analyze-api', 'Cache hit — returning existing result', { id: existing.id })
+        return NextResponse.json({ id: existing.id, result: existing })
+      }
     }
 
     // ✅ BUILD PROMPT
@@ -212,67 +217,63 @@ export async function POST(req: NextRequest) {
           : 'Medium',
     }
 
-    const { data: saved, error } = await supabaseAdmin
-      .from('analyses')
-      .insert([
-        {
-          idea_text: ideaText,
+    // ✅ SAVE TO DB
+    if (supabaseAdmin) {
+      const { data: saved, error } = await supabaseAdmin
+        .from('analyses')
+        .insert([
+          {
+            idea_text: ideaText,
+            stage,
+            target_customer: customer,
+            score: safe.score,
+            market_demand: safe.market_demand,
+            differentiation: safe.differentiation,
+            execution_risk: safe.execution_risk,
+            insight: safe.insight,
+            risk: safe.risk,
+            blind_spot: safe.blind_spot,
+            next_steps: safe.next_steps,
+            confidence: safe.confidence,
+            prompt_version: PROMPT_VERSION,
+            model: 'gpt-4o-mini',
+            cta_clicked: false,
+            useful_rating: null,
+            ip_hash: ipHash,
+            created_at: new Date().toISOString(),
+          },
+        ])
+        .select()
+        .single()
+
+      if (error) {
+        logError('analyze-api', error, { context: 'Supabase insert failed' })
+        trackEvent({
+          event_type: 'result_generated',
           stage,
-          target_customer: customer,
-
           score: safe.score,
-          market_demand: safe.market_demand,
-          differentiation: safe.differentiation,
-          execution_risk: safe.execution_risk,
-
-          insight: safe.insight,
-          risk: safe.risk,
-
-          blind_spot: safe.blind_spot,
-          next_steps: safe.next_steps,
           confidence: safe.confidence,
+          is_fallback: true,
+        })
+        return NextResponse.json({ result: safe, is_fallback: true })
+      }
 
-          prompt_version: PROMPT_VERSION,
-          model: 'gpt-4o-mini',
-
-          cta_clicked: false,
-          useful_rating: null,
-          ip_hash: ipHash,
-          created_at: new Date().toISOString(),
-        },
-      ])
-      .select()
-      .single()
-
-    // ✅ EVEN IF DB FAILS → RETURN RESULT
-    if (error) {
-      logError('analyze-api', error, { context: 'Supabase insert failed' })
+      // ✅ TRACK RESULT GENERATED
       trackEvent({
         event_type: 'result_generated',
         stage,
         score: safe.score,
         confidence: safe.confidence,
-        is_fallback: true,
+        is_fallback: false,
       })
-      return NextResponse.json({ result: safe, is_fallback: true })
+
+      logInfo('analyze-api', 'Analysis saved successfully', { id: saved.id })
+
+      return NextResponse.json({ id: saved.id, result: safe })
     }
 
-    // ✅ TRACK RESULT GENERATED
-    trackEvent({
-      event_type: 'result_generated',
-      stage,
-      score: safe.score,
-      confidence: safe.confidence,
-      is_fallback: false,
-    })
-
-    logInfo('analyze-api', 'Analysis saved successfully', { id: saved.id })
-
-    // ✅ SUCCESS RESPONSE
-    return NextResponse.json({
-      id: saved.id,
-      result: safe,
-    })
+    // ✅ IF NO DB — STILL RETURN RESULT
+    return NextResponse.json({ result: safe, is_fallback: true })
 
   } catch (err) {
     logError('analyze-api', err, { context: 'Unhandled error' })
