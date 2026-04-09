@@ -1,30 +1,40 @@
-# FounderOS
-
-AI-powered startup idea evaluation engine.
-
-Test your startup idea before you build it.
-
-## What it does
-- Analyzes startup ideas using AI
-- Gives a score, insights, risks, and next steps
-- Helps founders decide before building
-
 ## Tech Stack
-- Next.js 16 + React + Tailwind CSS
-- OpenAI gpt-4o-mini
-- Supabase (PostgreSQL)
-- Vercel
+
+- Frontend: Next.js + React + Tailwind
+- AI Engine: OpenAI (GPT-4o / mini)
+- Backend: Supabase (PostgreSQL)
+- Hosting: Vercel
 
 ## Getting Started
 
-1. Clone the repo
-2. Install dependencies: `npm install`
-3. Copy `.env.example` to `.env.local` and fill in values
-4. Run: `npm run dev`
+```bash
+git clone https://github.com/CoAIPro/founder-os.git
+cd founder-os
+npm install
+cp .env.example .env.local
+npm run dev
+```
 
 ## Environment Variables
 
-See `.env.example` for required variables.
+See `.env.example` for required keys:
+- OpenAI API Key
+- Supabase URL + Key
 
 ## Live
-https://founderos.pro
+
+Coming soon: https://founderos.pro
+
+## Vision
+
+FounderOS is being built as a system-first approach to startup building.
+
+Not: random tools or isolated features
+
+But: structured thinking, governed execution, scalable systems
+
+## Author
+
+**Srini Gubbala**
+AI Systems Architect
+Founder — CoAI.Pro
