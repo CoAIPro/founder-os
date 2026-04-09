@@ -11,6 +11,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Email required' }, { status: 400 })
     }
 
+    if (!supabaseAdmin) {
+      logError('leads-api', new Error('supabaseAdmin is null'), { context: 'DB not initialized' })
+      return NextResponse.json({ error: 'Database not available' }, { status: 500 })
+    }
+
     // get idea details from analyses table
     const { data: analysis } = await supabaseAdmin
       .from('analyses')

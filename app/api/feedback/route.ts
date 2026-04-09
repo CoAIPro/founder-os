@@ -16,6 +16,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    if (!supabaseAdmin) {
+      logError('feedback-api', new Error('supabaseAdmin is null'), { context: 'DB not initialized' })
+      return NextResponse.json({ error: 'Database not available' }, { status: 500 })
+    }
+
     // 🔥 CTA CLICK
     if (type === 'cta') {
       const { error } = await supabaseAdmin

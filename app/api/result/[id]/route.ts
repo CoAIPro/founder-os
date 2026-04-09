@@ -7,6 +7,10 @@ export async function GET(
 ) {
   const { id } = await context.params
 
+  if (!supabaseAdmin) {
+    return NextResponse.json({ error: 'Database not available' }, { status: 500 })
+  }
+
   const { data, error } = await supabaseAdmin
     .from('analyses')
     .select('*')

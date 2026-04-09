@@ -21,6 +21,8 @@ interface TelemetryEvent {
 // ✅ FIRE AND FORGET — never breaks UX
 export async function trackEvent(event: TelemetryEvent): Promise<void> {
   try {
+    if (!supabaseAdmin) return
+
     await supabaseAdmin.from('events').insert([{
       event_type: event.event_type,
       stage: event.stage ?? null,
