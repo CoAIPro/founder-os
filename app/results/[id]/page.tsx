@@ -66,6 +66,12 @@ export default function ResultPage() {
     return 'Low Clarity'
   }
 
+  const nextSteps: string[] = Array.isArray(data.next_steps)
+    ? data.next_steps
+    : typeof data.next_steps === 'string'
+    ? data.next_steps.split('\n').filter(Boolean)
+    : []
+
   return (
     <main className="min-h-screen bg-black text-white px-6 py-12 flex justify-center">
       <div className="w-full max-w-2xl space-y-6">
@@ -104,7 +110,7 @@ export default function ResultPage() {
             </div>
           </div>
 
-          {/* ✅ SCORE DISCLAIMER */}
+          {/* SCORE DISCLAIMER */}
           <p className="text-xs text-gray-500 border-t border-gray-800 pt-3">
             This score reflects how clearly your idea is defined — not guaranteed startup success.
           </p>
@@ -123,7 +129,7 @@ export default function ResultPage() {
           <div>
             <strong>Next Steps:</strong>
             <ul className="list-disc ml-6">
-              {data.next_steps?.map((step: string, i: number) => (
+              {nextSteps.map((step: string, i: number) => (
                 <li key={i}>{step}</li>
               ))}
             </ul>
@@ -132,7 +138,7 @@ export default function ResultPage() {
           {/* CONFIDENCE */}
           <p><strong>Confidence:</strong> {data.confidence}</p>
 
-          {/* ✅ LOW CONFIDENCE WARNING */}
+          {/* LOW CONFIDENCE WARNING */}
           {data.confidence === 'Low' && (
             <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 space-y-2">
               <p className="text-xs text-yellow-400 font-semibold">
