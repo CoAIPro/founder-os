@@ -45,6 +45,12 @@ export default function PreviewPage() {
     router.push('/analyze')
   }
 
+  const nextSteps: string[] = Array.isArray(data.next_steps)
+    ? data.next_steps
+    : typeof data.next_steps === 'string'
+    ? data.next_steps.split('\n').filter(Boolean)
+    : []
+
   return (
     <main className="min-h-screen bg-black text-white px-6 py-12 flex justify-center">
       <div className="w-full max-w-2xl space-y-6">
@@ -88,7 +94,7 @@ export default function PreviewPage() {
           <div>
             <strong>Next Steps:</strong>
             <ul className="list-disc ml-6">
-              {data.next_steps?.map((step: string, i: number) => (
+              {nextSteps.map((step: string, i: number) => (
                 <li key={i}>{step}</li>
               ))}
             </ul>
